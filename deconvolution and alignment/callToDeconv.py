@@ -3,21 +3,18 @@
 import os, sys
 
 exp = "indrop"
+path = '/icore-home/data/scRNAseq/fastq/'
 '''
 # scRNAseq germ1
-path = '/cs/icore/oren.ram/SequencingData/Unaligned_210202_NS500183_0747_AHHKJMBGXH/'
 batch = ['KilliWT_M1_']#'KilliKO_F1_', 'KilliKO_M3_', 'KilliWT_F2_',
 
 # scRNAseq germ2
-path = '/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/fastq/2/'
 batch = ['KO_M3_'] #  , 'KO_F1_', 'WT_F2_', 'WT_M3_']
 
 # scRNAseq germ3
-path = '/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/fastq/3/'
 batch = ['KOF3_', 'KOF4_', 'KOM1_', 'KOM2_', 'WTF1_', 'WTF3_', 'WTM2_']
 '''
 # scRNAseq germ4
-path = '/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/fastq/4/'
 batch = ['KfKOF2_', 'KfKOF3_', 'KfKOM2_', 'KfKOM4_', 'KfWTF1_', 'KfWTF3_', 'KfWTM1_', 'KfWTM2_']
 
 
