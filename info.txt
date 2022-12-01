@@ -1,12 +1,12 @@
 Welcome to my single-cell RNA seq analysis!
 please fill the next fields:
-path to a folder: /sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/raw_data6.22/
+path to a folder: icore-home/data/scRNAseq/raw_data6.22/
 batches(, delimiter): KilliWT_M1, KilliWT_F2, WT_M3, WT_F2, KilliKO_M3, KilliKO_F1, KO_M3, KO_F1, KOF3, KOF4, KOM1, KOM2, WTF1, WTF3, WTM2, KfKOF2, KfKOF3, KfKOM2, KfKOM4, KfWTF1, KfWTF3, KfWTM1, KfWTM2
-where do save the figures: /sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/analysis/
+where do save the figures: icore-home/data/scRNAseq/analysis/
 
 min features: 200; max genes: 4000; highVG: 1000; # neighbers: 20; pcs: 15; clusters resulation: 0.5
 
-Thank you! see you soon:)
+Thank you!
 Tehila
 
 # WT_M3, 
