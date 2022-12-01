@@ -9,66 +9,7 @@ library(ggplot2)          #3.3.5
 library(tidyr)            #1.1.4
 library(reshape2)
 
-
-GSEA_paramP <- function(data, pathGO, save_in){
-  # To convert NCBI ids to human entrez ids. This is needed to run the package. There are ways to adapt it for nfur only, but for now I do everything based on human orthologs
-  hSymbols = read.table("C:/Users/tehil/Dropbox/Projects/NCBI-Human-orthologs.txt", head = T, sep = "\t")
-  
-  # This input to GSEA is a ranked list of genes. Read the input ranked list.
-  head(data)
-  
-  # Get human ortholog symbols based on the BLAST results file using org.Hs.eg.db package
-  # Some Ids will fail to map and will be ignored
-  dataH = merge(hSymbols, data, by.x = "ncbi", by.y = "Gene") 
-  entrezIds = bitr(as.character(dataH[,2]), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db") # Get entrez ids for annotation
-  dataHE = merge(dataH, entrezIds, by.x = "human", by.y = "SYMBOL") # Get human symbols
-  head(dataHE)
-  
-  # There can be duplicate values because of paralogs, I take average of those for quantitative score
-  unique = aggregate(dataHE[,3], list(dataHE$human), mean)
-  dataHEU = merge(unique, entrezIds, by.x = "Group.1", by.y = "SYMBOL") 
-  colnames(dataHEU) = c("human", "mlog10QvalxFC", "entrez")
-  head(dataHEU)
-  
-  geneList = dataHEU[,2]  # gene list for GO 
-  names(geneList) = as.character(dataHEU[,1]) # with entrez ids as names
-  
-  geneListKegg = geneList # gene list for KEGG
-  names(geneListKegg) = as.character(dataHEU[,3]) #  with humna symbols as names
-  
-  # *** Sort the gene list based on quantitative score in decreasing order. This is critical for GSEA  
-  geneList = sort(geneList, decreasing = TRUE)
-  geneListKegg = sort(geneListKegg, decreasing = TRUE)
-  
-  head(geneList)
-  tail(geneList)
-  
-  head(geneListKegg)
-  tail(geneListKegg)
-  
-  # *****************  Now do different enrichment analyses *****************************
-  
-  # Gene Ontology ------------------------------------------------------------------------------------------------------------------------------------
-  ego3 <- gseGO(geneList     = geneList,
-                OrgDb        = org.Hs.eg.db,
-                keyType      = 'SYMBOL',
-                ont          = c("ALL"),
-                pvalueCutoff = 1)
-  #head(ego3)
-  #dotplot(ego3)
-  #gseaplot(ego3, geneSetID = 1, by="runningScore",title = edo2$Description[1])
-  save(ego3, file= paste0(paste(pathGO, save_in, sep = '/'), "_GOGSEA.Rdata"))
-  write.table(ego3, paste0(paste(pathGO, save_in, sep = '/'), "_GOGSEA.csv"), sep = ",", quote = T, row.names = F)
-  
-  # KEGG Gene Set Enrichment Analysis ----------------------------------------------------------------------------------------------------------------------------
-  #kk2 <- gseKEGG(geneList     = geneListKegg,
-  #               organism     = 'hsa',
-  #               pvalueCutoff = 1)
-  #kk2 = setReadable(kk2, OrgDb = org.Hs.eg.db, keyType="ENTREZID")
-  
-  #save(kk2, file= paste0(paste(pathGO, save_in, sep = '/'), "_KEGG.Rdata"))
-  #write.table(kk2, paste0(paste(pathGO, save_in, sep = '/'), "_KEGG.csv"), sep = ",", quote = T, row.names = F)
-}
+pathGO = "C:/Users/tehil/Dropbox/Projects/single-cell gonads/differential_expression/"
 
 enrichmentClusterProfile <- function(geneListHuman, folder, fileName, backgroundGeneList = 'none') {
   
@@ -196,17 +137,6 @@ sendToCompareSaveXlsx <- function(path, group, DBs, nameG, test, ont=''){
 }
 
 ######gonads DND and WT#######
-#GSEA
-pathGO <- 'C:/Users/tehil/Dropbox/Projects/single-cell gonads/differential_expression/'
-files <- gsub('.csv', '', list.files(path=paste0(pathGO, 'GeneSets/'), pattern="*.csv"))
-for (i in 1:length(files)){
-  data = read.csv(paste0(pathGO, 'GeneSets/', files[i], '.csv'))
-  data = data[data$maxEx > 0,]
-  data$mlog10QvalxFC = -log10(data$pvals_adj+10^-6) * data$logFC #
-  data$Gene = data$NCBI
-  ego3 <- GSEA_paramP(data[c('Gene', 'mlog10QvalxFC')], pathGO, paste0('Results/', files[i]))
-}
-
 #GO
 for (i in 1:length(files)){
   data = read.csv(paste0(pathGO, 'GeneSets/', files[i], '.csv'))
@@ -215,9 +145,9 @@ for (i in 1:length(files)){
   sigGenesN = data[data$pvals_adj < 0.1 & data$logFC < -log2(1.5), ]$Human
   sigGenes = data[data$pvals_adj < 0.1 & abs(data$logFC) > log2(1.5), ]$Human
   background = unique(data$Human)
-  #enrichmentClusterProfile(unique(sigGenesN),paste0(pathGO, 'GO/neg_') , files[i], background)
-  #enrichmentClusterProfile(unique(sigGenesP),paste0(pathGO, 'GO/pos_') , files[i], background)
-  #enrichmentClusterProfile(unique(sigGenes),paste0(pathGO, 'GO/') , files[i], background)
+  enrichmentClusterProfile(unique(sigGenesN),paste0(pathGO, 'GO/neg_') , files[i], background)
+  enrichmentClusterProfile(unique(sigGenesP),paste0(pathGO, 'GO/pos_') , files[i], background)
+  enrichmentClusterProfile(unique(sigGenes),paste0(pathGO, 'GO/') , files[i], background)
   
   print(files[i])
   print(dim(data))
@@ -229,35 +159,9 @@ for (i in 1:length(files)){
 ###combined results to one file####
 names(files) <- files
 
-sendToCompareSaveXlsx(paste0(pathGO, 'Results/'), files[1:3], DBs,'F_GSEA_0.1_', ont)
-sendToCompareSaveXlsx(paste0(pathGO, 'Results/'), files[4:7], DBs,'M_GSEA_0.1_', ont)
-
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files[1:4], DBs,'F_GO', ont)
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files[5:9], DBs,'M_GO', ont)
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files, DBs,'ALL_GO', ont)
-
-
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/pos/'), files[1:3], DBs,'F_pos', ont)
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/pos/'), files[4:7], DBs,'M_pos', ont)
-
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/neg/'), files[1:3], DBs,'F_neg', ont)
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/neg/'), files[4:7], DBs,'M_neg', ont)
-
-
 #combined up and down
 files <- gsub('_GO.csv', '', list.files(path=paste0(pathGO, 'GO/'), pattern="*.csv"))
 names(files) <- files
-
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files[c(1,10,18)], DBs,'F_Fibroblast', ont)
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files[c(1,10,18)+1], DBs,'F_Netrophils', ont)
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files[c(1,10,18)+2], DBs,'F_OvarianEpithelium', ont)
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files[c(1,10,18)+3], DBs,'F_SMC', ont)
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files[c(1,10,18)+4], DBs,'M_Fibroblast', ont)
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files[c(1,10,18)+5], DBs,'M_Leydig', ont)
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files[c(7,24)], DBs,'M_Netrophils', ont)
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files[c(7,15,24)+1], DBs,'M_Sertoli', ont)
-sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files[c(7,15,24)+2], DBs,'M_SMC', ont)
-
 
 sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files, DBs,'ALLcomparsions', ont)
 sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files[10:26], DBs,'ALL', ont)
@@ -268,8 +172,8 @@ sendToCompareSaveXlsx(paste0(pathGO, 'GO/'), files[22:26], DBs,'M_pos', ont)
 
 ## GO visualization----
 
-GoCompareEnrichmentGroup = read.xlsx('C:/Users/tehil/Dropbox/Projects/single-cell gonads/differential_expression/GO/MergedAnalysis/GO_ALL_orginal.xlsx', sheetName = 'ALL')
-chosenPathways <- read.csv("C:/Users/tehil/Dropbox/Projects/single-cell gonads/differential_expression/pathways2.csv", row.names=1)
+GoCompareEnrichmentGroup = read.xlsx(paste0(pathGO,'GO/MergedAnalysis/GO_ALL_orginal.xlsx'), sheetName = 'ALL')
+chosenPathways <- read.csv("pathways2.csv", row.names=1)
 
 GOdots <- function(GoCompareEnrichmentGroup, chosenPathways, group, title="GO", grouplevel=c(), labelss=c(), cirles=c()){
   # extract the pathways and the group 
@@ -360,15 +264,15 @@ GOdots <- function(GoCompareEnrichmentGroup, chosenPathways, group, title="GO", 
 grouplevel = c('neg_M_SMC_WTvsKO', 'neg_M_Fibroblast_WTvsKO', 'neg_M_Sertoli_WTvsKO', 'neg_M_Leydig_WTvsKO',
                'neg_F_SMC_WTvsKO', 'neg_F_Fibroblast_WTvsKO', 'neg_F_Netrophils_WTvsKO', 'neg_F_OvarianEpithelium_WTvsKO')
 godots <- GOdots(GoCompareEnrichmentGroup, chosenPathways, c('neg_'), "neg", grouplevel = grouplevel)
-pdf('C:/Users/tehil/Dropbox/Projects/single-cell gonads/differential_expression/GOvis.pdf', width = 7, height = 4)
+pdf(paste0(pathGO, 'GOvis.pdf'), width = 7, height = 4)
 plot(godots)
 dev.off()
 
-chosenPathways <- read.csv("C:/Users/tehil/Dropbox/Projects/single-cell gonads/differential_expression/pathwaysPos.csv", row.names=1)
+chosenPathways <- read.csv(paste0(pathGO, "pathwaysPos.csv"), row.names=1)
 grouplevelP = c('pos_M_SMC_WTvsKO', 'pos_M_Fibroblast_WTvsKO', 'pos_M_Netrophils_WTvsKO', 'pos_M_Sertoli_WTvsKO', 'pos_M_Leydig_WTvsKO',
                 'pos_F_SMC_WTvsKO', 'pos_F_Fibroblast_WTvsKO', 'pos_F_Netrophils_WTvsKO', 'pos_F_OvarianEpithelium_WTvsKO')
 godotsP <- GOdots(GoCompareEnrichmentGroup, chosenPathways, c('pos_'), "pos", grouplevel = grouplevelP)
-pdf('C:/Users/tehil/Dropbox/Projects/single-cell gonads/differential_expression/GOvisPos.pdf', width = 7, height = 3)
+pdf(paste0(pathGO, 'GOvisPos.pdf'), width = 7, height = 3)
 plot(godotsP)
 dev.off()
 
