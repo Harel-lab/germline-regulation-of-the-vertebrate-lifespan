@@ -9,7 +9,7 @@ import re
 path = sys.argv[1]
 batch = sys.argv[2]
 # newPath = path + "SC_" + batch[:-1]
-newPath = "/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/" + batch[:-1] # + "2"
+newPath = "icore-home/data/scRNAseq/" + batch[:-1] # + "2"
 os.popen("mkdir -p " + newPath)  # create a folder for this experiment
 print("start of " + newPath)
 print(datetime.datetime.now())
