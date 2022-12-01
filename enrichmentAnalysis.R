@@ -9,7 +9,7 @@ library(ggplot2)          #3.3.5
 library(tidyr)            #1.1.4
 library(reshape2)
 
-pathGO = "C:/Users/tehil/Dropbox/Projects/single-cell gonads/differential_expression/"
+pathGO = "single-cell gonads/differential_expression/"
 
 enrichmentClusterProfile <- function(geneListHuman, folder, fileName, backgroundGeneList = 'none') {
   
