@@ -36,12 +36,12 @@ class scRNAseqTA:
         sc.settings.autosave = True
         sc.settings.autoshow = False
         self.date = time.strftime('%Y%m%d_%H%M')  # time.strftime('_%Y-%m-%d_%H:%M')
-        self.convert = pd.read_csv('/sci/labs/itamarh/tehila_atlan/icore-home/data/genes_names7.csv')
-        self.mutants = pd.read_csv('/sci/labs/itamarh/tehila_atlan/icore-home/data/FishStrains.csv') #  markersTest
+        self.convert = pd.read_csv('genes_names7.csv')
+        self.mutants = pd.read_csv('FishStrains.csv') #  markersTest
         self.info = pd.read_csv(info_file.replace('txt', 'csv'))
         self.org = 'kf'
         self.DEgenes = []
-        # print('make sure you filled correct the information experiment file.\nYou can fill manual or use: /sci/labs/itamarh/tehila_atlan/icore-home/scripts/fill_scRNAseq_info.py')
+        # print('make sure you filled correct the information experiment file.\nYou can fill manual or use: fill_scRNAseq_info.py')
         self.read_info_file(info_file)
         self.read_files_concatenate()
         # self.diffusion_pseudotime()
@@ -288,19 +288,6 @@ class scRNAseqTA:
         sce.pp.harmony_integrate(sc_matrix, 'Batch')  # batch correction
         sc.pp.neighbors(sc_matrix, n_neighbors=int(neighbors), n_pcs=int(pcs), use_rep='X_pca_harmony') #)
 
-        # for n in range(20,51,10):
-        #     for p in range(20,31,10):
-        #         for d in np.linspace(0.4,0.5,2):
-        #             sc.pp.neighbors(sc_matrix, n_neighbors=n, n_pcs=p, use_rep='X_pca_harmony')
-        #             sc.tl.umap(sc_matrix, min_dist=d) #=0.3
-        #             sc.pl.umap(sc_matrix, color=['Group'], show=False, save='%s_%d_neighbors_%d_pcs_%f_dist' % (name, n, p, d))
-
-        # for i in np.linspace(0.2,1.0,9):
-        #     sc.tl.leiden(sc_matrix, resolution=i)
-        #     sc.tl.louvain(sc_matrix, resolution=i)
-        #     sc.tl.umap(sc_matrix, min_dist=dist)
-        #     sc.pl.umap(sc_matrix, color=['leiden', 'louvain', 'Group'], show=False, save=name+'cluster_'+str(i))
-
         #
         sc.pp.neighbors(sc_matrix, n_neighbors=int(neighbors), n_pcs=int(pcs), use_rep='X_pca_harmony') #
         # UMAP
@@ -309,11 +296,6 @@ class scRNAseqTA:
 
         star = ['star (1 of 2)', 'star (2 of 2)', 'cyp17a1 (1 of 2)', 'cyp17a1 (2 of 2)', 'cyp11a1 (1 of 2)', 'cyp11a1 (2 of 2)', 'ddx4']
         sc.tl.umap(sc_matrix, min_dist=dist)
-        # sc.pl.umap(sc_matrix, color=infla_genes.keys(), title= infla_genes.values() ,show=False, save='_forUri')
-        # sc.pl.umap(sc_matrix, color=self.__convertGenesNames(scen2), use_raw=False, show=False, save='_senescence2')
-
-        # specific colormap
-        # cmap = cmr.get_sub_cmap('BuPu', 0.35, 1.0) #'BuPu'
 
         self.sc_matrix.obs['cellType'] = self.sc_matrix.obs['leiden']
         print(pd.crosstab(index=self.sc_matrix.obs['leiden'], columns='count'))
@@ -328,8 +310,6 @@ class scRNAseqTA:
             sc.pl.umap(sc_matrix, color=['Group'], groups=g, show=False, save=g+name)
         for b in list(set(self.sc_matrix.obs['Batch'])):
             sc.pl.umap(sc_matrix, color=['Batch'], groups=b, show=False, save=str(b) + name)
-        # for gb in list(set(self.sc_matrix.obs['mergedGroup'])):
-        #     sc.pl.umap(sc_matrix, color=['mergedGroup'], groups=gb, show=False, save=gb + name)
 
         sc.pl.umap(sc_matrix, color=self.mutants, use_raw=False, show=False, save='_OurFishStrains' + name)
 
@@ -338,12 +318,6 @@ class scRNAseqTA:
             genes = [m for m in genes if m in self.sc_matrix.var_names]
 
             sc.pl.umap(sc_matrix, color=genes, use_raw=False, show=False, save='_specific_markers' + name, *args, **kwargs)
-
-        """
-        # sc.tl.tsne(sc_matrix)
-        # sc.pl.tsne(sc_matrix, color=['leiden', 'louvain', 'Group'], show=False, save=self.date)
-        # sc.pl.tsne(sc_matrix, color = sexual_genes.keys(), title = sexual_genes.values(), use_raw = False, show = False, save = '_sexual')
-        """
 
     def differential_expression_genes(self, g1, g2='rest', method='wilcoxon', cluster='Group', name='', thresholdpval=0.05, thresholdFC=1.0):
         """
@@ -375,7 +349,6 @@ class scRNAseqTA:
         summary_table = pd.DataFrame([self.sc_matrix.uns['rank_genes_groups'][x][g1] for x in params], index=params).T
         self.calculate_properties_on_group(g1, g2, cluster=cluster) # calculate the log2 FC (in the way Seurat do)
         significant_genes_table = summary_table.merge(self.sc_matrix.var[['logFC', 'maxEx', 'meanEx']], left_on='names', right_index=True)
-        # significant_genes_table['Final symbol'] = self.__convertGenesNames(significant_genes_table['names'])
         significant_genes_table['NCBI'] = self.__convertGenesNames(significant_genes_table['names'],source='Final symbol', target='NCBI')
         significant_genes_table['Human'] = self.__convertGenesNames(significant_genes_table['names'],source='Final symbol', target='Human')
         significant_genes_table.sort_values('logFC', inplace=True)
@@ -416,23 +389,16 @@ class scRNAseqTA:
             summary_table = pd.DataFrame([sc_matrix.uns['rank_genes_groups'][x][g] for x in params], index=params).T
             self.calculate_properties_on_group(g, cluster=cluster)
             significant_genes_table = summary_table.merge(self.sc_matrix.var[['logFC']], left_on= 'names', right_index=True)
-            # significant_genes_table['Final symbol'] = self.__convertGenesNames(significant_genes_table['names'])
             significant_genes_table['NCBI'] = self.__convertGenesNames(significant_genes_table['names'], source='Final symbol', target='NCBI')
             significant_genes_table['Human'] = self.__convertGenesNames(significant_genes_table['names'],source='Final symbol', target='Human')
             significant_genes_table['NCBI Definition'] = self.__convertGenesNames(significant_genes_table['names'],source='Final symbol', target='NCBI Definition')
             marker_genes[g] = significant_genes_table
-            # significant_genes_table.to_csv(os.path.join(self.analysis_path, 'files', g + '_pval_' + str(thresholdpval) + '_FC_' + str(thresholdFC) + '.csv'))
             significant_genes_table.to_csv(os.path.join(self.analysis_path, self.date,  name + g + cluster + '.csv'))
-            # significant_genes_table[significant_genes_table['names'].isin(self.mutants)].to_csv(os.path.join(self.analysis_path, self.date,  g  + '_OurFishStrains.csv'))
 
             genes = significant_genes_table[(abs(significant_genes_table['logFC']) > thresholdFC) & (significant_genes_table['pvals_adj'] < thresholdpval)]
             genes.sort_values(by=['logFC'], inplace=True)
             genes.to_csv(os.path.join(self.analysis_path, self.date, 'significant_differential_gene_exp_up_%s%s_pval_%.2f_FC_%.1f.csv' % (name, g, thresholdpval, thresholdFC)))
-            # sc.pl.umap(sc_matrix, color=genes[genes['logFC'] > 0]['names'], show=False,
-            #            save='_upregulated_genes_in_%s_pval_%.2f_FC_%.1f' % (g, thresholdpval, thresholdFC))
-            # sc.pl.umap(sc_matrix, color=genes[genes['logFC'] < 0]['names'], show=False,
-            #            save='_downregulated_genes_in_%s_pval_%.2f_FC_%.1f' % (g, thresholdpval, thresholdFC))
-
+           
         sc.pl.rank_genes_groups_heatmap(self.sc_matrix, n_genes=20, groupby=cluster, show_gene_labels=True, save=name + '1')
         sc.pl.rank_genes_groups_heatmap(self.sc_matrix, n_genes=20, groupby='Group', save=name + '2')
         return marker_genes
@@ -443,13 +409,7 @@ class scRNAseqTA:
 
         :return:
         """
-
-        # for i in [110,111,112,113,114,115,116,117,118,119,120]:
-        #     self.sc_matrix.obs['irootCluster'] = 'A'
-        #     self.sc_matrix.obs['irootCluster'][np.flatnonzero(self.sc_matrix.obs['leiden'] == '2')[i]] = 'B'
-        #     sc.tl.umap(scscWTg2.sc_matrix, min_dist=0.4)
-        #     sc.pl.umap(scscWTg2.sc_matrix, color=['cellType', 'irootCluster'], show=False, save='GermAfterDiff' + str(i))
-
+        
         # sc.pp.recipe_zheng17(self.sc_matrix)
         sc.pp.neighbors(self.sc_matrix, n_neighbors=20, method='gauss', use_rep='X_pca_harmony')
         sc.tl.diffmap(self.sc_matrix, n_comps=10)
@@ -472,31 +432,6 @@ class scRNAseqTA:
         #
         print(np.array(self.sc_matrix[:, 'piwil1'].X))
         print(np.array(self.sc_matrix[:, 'piwil1'].X).argmax())
-
-        #
-        # # sc.tl.louvain(adata, resolution=1.0)
-        # sc.tl.draw_graph(self.sc_matrix)
-        # sc.pl.draw_graph(self.sc_matrix, color='leiden', legend_loc='on data', save='diffmap' + name)
-        #
-        # sc.tl.paga(self.sc_matrix, groups='leiden')
-        # sc.pl.paga(self.sc_matrix, color=['leiden', 'Group', 'ddx4', 'sycp1', 'tekt1', 'zp4 (4 of 7)'], save=name)
-        # sc.tl.draw_graph(self.sc_matrix, init_pos='paga')
-        # sc.pl.draw_graph(self.sc_matrix, color=['leiden', 'Group', 'ddx4', 'sycp1', 'tekt1', 'zp4 (4 of 7)'], save='afterPaga'+ name)
-        #
-        # sc.pl.paga_compare(self.sc_matrix, save=name)
-        # # self.sc_matrix.uns['iroot'] = np.flatnonzero(self.sc_matrix.obs['leiden'] == '1')[0]
-
-        # sc.tl.diffmap(self.sc_matrix)
-        # sc.pp.neighbors(self.sc_matrix, n_neighbors=20, use_rep='X', method='gauss')
-        # sc.tl.dpt(self.sc_matrix, n_branchings=1, n_dcs=10)
-        # # print(self.sc_matrix)
-        # sc.pl.diffmap(self.sc_matrix, components=['1,2', '3,4', '5,6', '7,8'], color=['leiden'], show=False, save='Group' + name + self.date)
-        # # sc.pl.diffmap(self.sc_matrix, components=['1,2', '3,4', '5,6', '7,8'], color=['leiden', 'dpt_pseudotime', 'dpt_groups', 'dpt_order'], show=False, save='Group2' + name + self.date)
-        # sc.pl.dpt_groups_pseudotime(self.sc_matrix, show=False, save='Pseudotime' + name + self.date)
-
-        # sc.tl.louvain(self.sc_matrix, resolution=1.0), color_map='leiden'
-        # sc.tl.paga(self.sc_matrix, groups='louvain')
-        # sc.pl.paga(self.sc_matrix, color=['louvain', 'Group', 'LOC107385762'])
 
     def cell_type_identification(self, clusterMethod='leiden', name='',markerGeneFile='all', order=[], *args, **kwargs):
         """
@@ -527,7 +462,7 @@ class scRNAseqTA:
         if markerGeneFile =='all':
             # Testis PMID: 30315278
             markerGenes = pd.read_csv(
-                '/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/cellType/markersHumanPaperTestis2018.csv')
+                '/cellType/markersHumanPaperTestis2018.csv')
             markerHpaper = markerGenes.groupby('cluster')['Human'].apply(list).to_dict()
             for h in markerHpaper:
                 markerHpaper[h] = [m for m in markerHpaper[h] if m in self.convert['Human'].tolist()]
@@ -537,7 +472,7 @@ class scRNAseqTA:
             sc.pl.dotplot(self.sc_matrix, markerHpaper, clusterMethod, dendrogram=True, save='_Testis' + self.date + name)
             # human papers
             markerGenes = pd.read_csv(
-                '/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/cellType/markersHumanPaper.csv')  #Ovarian2020
+                '/cellType/markersHumanPaper.csv')  #Ovarian2020
             markerHpaper = markerGenes.groupby('cluster')['Human'].apply(list).to_dict()
             for h in markerHpaper:
                 markerHpaper[h] = [m for m in markerHpaper[h] if m in self.convert['Human'].tolist()]
@@ -546,7 +481,7 @@ class scRNAseqTA:
             print(markerHpaper)
             sc.pl.dotplot(self.sc_matrix, markerHpaper, clusterMethod, dendrogram=True, save='_H_paper' + self.date + name)
 
-            markerGenes = pd.read_csv('/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/cellType/markersHumanTestis.csv') #markersHumanPaperTestis2018
+            markerGenes = pd.read_csv('/cellType/markersHumanTestis.csv') #markersHumanPaperTestis2018
             markerHpaper = markerGenes.groupby('cluster')['Human'].apply(list).to_dict()
             for h in markerHpaper:
                 markerHpaper[h] = [m for m in markerHpaper[h] if m in self.convert['Human'].tolist()]
@@ -556,7 +491,7 @@ class scRNAseqTA:
 
             # Human protein atlas
             markerGenes = pd.read_csv(
-                '/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/cellType/markersHumanProteinAtlas.csv')
+                '/cellType/markersHumanProteinAtlas.csv')
             markerHpaper = markerGenes.groupby('cluster')['Human'].apply(list).to_dict()
             for h in markerHpaper:
                 markerHpaper[h] = [m for m in markerHpaper[h] if m in self.convert['Human'].tolist()]
@@ -567,7 +502,7 @@ class scRNAseqTA:
 
             # immune killifish
             markerGenes = pd.read_csv(
-                '/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/cellType/immune_markers.csv')
+                '/cellType/immune_markers.csv')
             markerHpaper = markerGenes.groupby('cluster')['NCBI'].apply(list).to_dict()
             for h in markerHpaper:
                 markerHpaper[h] = [m for m in markerHpaper[h] if m in self.convert['NCBI'].tolist()]
@@ -578,7 +513,7 @@ class scRNAseqTA:
 
             # zebrafish
             # the DE genes for each cell type by PMID: 35588359
-            with open('/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/cellType/dictCellTypesZFgenes.pickle',
+            with open('/cellType/dictCellTypesZFgenes.pickle',
                       'rb') as handle:
                 markerZFpaper = pickle.load(handle)
 
@@ -588,7 +523,7 @@ class scRNAseqTA:
 
         else:
             # in case you provide your own gene list
-            markerGenes = pd.read_csv('/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/%s.csv' % markerGeneFile)
+            markerGenes = pd.read_csv('%s.csv' % markerGeneFile)
             markerK = markerGenes['Final Symbol'].to_list()
             markerK = [m for m in markerK if m in self.sc_matrix.var_names]
             print(markerK)
@@ -599,7 +534,7 @@ class scRNAseqTA:
             sc.pl.umap(self.sc_matrix, color=markerK, show=False, save='_MyK2'+ name, *args, **kwargs)
 
         # All markers
-        markerGenes = pd.read_csv('/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/markersL.csv')
+        markerGenes = pd.read_csv('markersL.csv')
         markerK = markerGenes.groupby('cluster')['Final Symbol'].apply(list).to_dict()
         for k in markerK:
             markerK[k] = [m for m in markerK[k] if m in self.sc_matrix.var_names]
@@ -652,13 +587,7 @@ class scRNAseqTA:
         print(len(list(self.sc_matrix[self.sc_matrix.obs['Group'] == groupFilterby, :].obs_names)))
         return self.pick_specific_cells_by_name(list(scscCopy.sc_matrix.obs_names) + list(self.sc_matrix[self.sc_matrix.obs['Group'] == groupFilterby, :].obs_names))
 
-#
-# scsc = scRNAseqTA('/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Henrik/inf.txt')
-# scsc.filtering_normalization_scaling()
-# scsc.pca_and_umap(file_name='/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Henrik/genesUMAP.csv')
-
-
-scsc = scRNAseqTA("/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/info.txt")
+scsc = scRNAseqTA("info.txt")
 
 
 # ##################WT################
@@ -667,29 +596,23 @@ scscWT.sc_matrix = scsc.pick_specific_cells('Group', ['WTM', 'WTF'])
 scscWT.filtering_normalization_scaling()
 a = [['0', '1', '2', '3', '4', '12'], ['13'], ['5', '6', '7', '8', '9', '10', '11', '14', '15']]
 b=['Germ', 'Eggs', 'Somatic']
-#
-# , file_name='/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/genesUMAP.csv'
+
 scscWT.pca_and_umap(neighbors=40.0, pcs=20.0, res=0.6, dist=0.5, size=15, repSource=a, repTarget=b)
 sc.pl.violin(scscWT.sc_matrix, ['n_genes', 'n_counts', 'pct_counts_mt'], groupby='cellType', jitter=0.4, multi_panel=True, save='_cellTypeAfter_', rotation=90, show=False)
 
-# scscWT.cell_type_identification()
-# scscWT.cell_type_identification(size=15, markerGeneFile='markersGerm', name='GermALL')
+scscWT.cell_type_identification()
+scscWT.cell_type_identification(size=15, markerGeneFile='markersGerm', name='GermALL')
 
-# scscWT.sc_matrix.obs['leiden2'] = scscWT.sc_matrix.obs['leiden']
-# scscWT.sc_matrix.obs[['GermClusters']].replace(a[2], ['Somatic'], inplace=True)
-#
-# scscWT.sc_matrix.obs['GermClusters'] = (scscWT.sc_matrix.obs['leiden2'].astype(str) + scscWT.sc_matrix.obs['Group'].astype(str)).astype('category')
-# d = [['3WTM', '5WTM', '6WTM', '8WTM'], ['3WTF', '5WTF', '6WTF', '7WTF', '10WTF'], ['2WTF', '1WTF']]
-# scscWT.sc_matrix.obs[['GermClusters']].replace(d, ['Somatic', 'Somatic', '1WTF'], inplace=True)
-#
-#
-# newOrder = ['9WTF', '1WTF', '0WTF', '2WTM', '4WTM', '1WTM', '0WTM', 'Somatic']
-# # newOrder = ['9WTF', '0WTF', '1WTF', '2WTM', '4WTM', '0WTM', '1WTM', 'Somatic']
+scscWT.sc_matrix.obs['leiden2'] = scscWT.sc_matrix.obs['leiden']
+scscWT.sc_matrix.obs[['GermClusters']].replace(a[2], ['Somatic'], inplace=True)
 
-# # scscWT.cell_type_identification(clusterMethod='GermClusters', size=15, order=newOrder, markerGeneFile='markersGerm')
-# # scscWT.marker_genes(cluster='GermClusters', name='WT')
-#
-"""
+scscWT.sc_matrix.obs['GermClusters'] = (scscWT.sc_matrix.obs['leiden2'].astype(str) + scscWT.sc_matrix.obs['Group'].astype(str)).astype('category')
+d = [['3WTM', '5WTM', '6WTM', '8WTM'], ['3WTF', '5WTF', '6WTF', '7WTF', '10WTF'], ['2WTF', '1WTF']]
+scscWT.sc_matrix.obs[['GermClusters']].replace(d, ['Somatic', 'Somatic', '1WTF'], inplace=True)
+
+
+newOrder = ['9WTF', '1WTF', '0WTF', '2WTM', '4WTM', '1WTM', '0WTM', 'Somatic']
+
 # ########### WT somatic ###############
 scscWTsom = copy.deepcopy(scscWT)
 scscWTsom.sc_matrix = scscWT.pick_specific_cells('cellType', ['Somatic'])
@@ -706,28 +629,6 @@ scscWTsom.cell_type_identification(name='WTSomatic', size=30, order=newOrder, ma
 newOrder = ['8', '7', '0', '10', '5', '6', '2', '4', '1', '9', '11', '3']
 # scscWTsom.cell_type_identification(name='WTSomaticZF', size=30, order=newOrder, markerGeneFile='markersCompareZF')
 # scscWTsom.marker_genes(cluster='leiden', name='WTSomatic')
-"""
-# convertZF2H = pd.read_csv('/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/ZFcomparision/mart_export.txt')
-# femaleZF = pd.read_csv('/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/ZFcomparision/FemaleZF.csv')
-# femaleZF = femaleZF.merge(convertZF2H[['Zebrafish gene name', 'Gene name']], left_on='gene', right_on='Zebrafish gene name', how='inner')
-# femaleZF = femaleZF.merge(scscWTsom.convert, left_on='Gene name', right_on='Human', how='inner')
-# femaleZF.sort_values('cluster', inplace=True)
-# print(femaleZF.columns)
-# # femaleZF['final Symbol'] = self.__convertGenesNames(femaleZF['Gene name'], 'Human')
-# femaleZF = [m for m in femaleZF['Final symbol'] if m in scscWTsom.sc_matrix.var_names]
-# sc.pl.heatmap(scscWTsom.sc_matrix, femaleZF, groupby='leiden', swap_axes=True, save='WTsoma',show_gene_labels=False)
-
-# # ### WT male and female separately ####
-# scscWTsomM = copy.deepcopy(scscWTsom)
-# scscWTsomM.sc_matrix = scscWTsom.pick_specific_cells('Group', ['WTM'])
-# scscWTsomM.pca_and_umap(neighbors=20.0, pcs=15.0, res=0.4, name='WTSomM', size=30)
-# scscWTsomM.cell_type_identification(name='WTSomM', size=30, markerGeneFile='markersWTcellTypes')  #)
-#
-# scscWTsomF = copy.deepcopy(scscWTsom)
-# scscWTsomF.sc_matrix = scscWTsom.pick_specific_cells('Group', ['WTF'])
-# scscWTsomF.pca_and_umap(neighbors=20.0, pcs=15.0, res=0.4, name='WTSomF', size=30)
-# scscWTsomF.cell_type_identification(name='WTSomF', size=30, markerGeneFile='markersWTcellTypes')  #)
-
 
 
 # ########### WT Germ ###############
@@ -764,43 +665,7 @@ newOrder = ['1', '6', '3', '4', '0', '5', '2']
 scscWTg2.cell_type_identification(name='leiden', order=newOrder, markerGeneFile='markersGerm2') #)
 scscWTg2.cell_type_identification(clusterMethod='leiden', name='GermZF', order=newOrder, markerGeneFile='markersCompareZFgerm') #)
 
-
-# scscWTgF = copy.deepcopy(scscWTg)
-# scscWTgF.sc_matrix = scscWTg.pick_specific_cells('Group', ['WTF'])
-# scscWTgF.pca_and_umap(name='GermF', neighbors=40.0, pcs=20.0, res=0.6, dist=0.4)   #,0.6
-# scscWTgF.cell_type_identification(name='GermClustersF', markerGeneFile='markersGerm') #)
-
-
-# scscWTg3 = copy.deepcopy(scscWTg2)
-# scscWTg3.sc_matrix = scscWTg2.pick_specific_cells('leiden', ['4', '3', '6'])
-# scscWTg3.pca_and_umap(name='Germ3', neighbors=40.0, pcs=20.0, res=0.4, dist=0.4)   #,0.6
-# scscWTg3.cell_type_identification(name='GermClusters3', markerGeneFile='markersGerm') #)
-
-
 # scscWTg.marker_genes(cluster='leiden', name='WTGerm')
-"""
-# convertZF2H = pd.read_csv('/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/ZFcomparision/mart_export.txt')
-# maleZF = pd.read_csv('/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/ZFcomparision/maleZf.csv')
-# maleZF = maleZF.merge(convertZF2H[['Zebrafish gene name', 'Gene name']], left_on='gene', right_on='Zebrafish gene name', how='inner')
-# maleZF = maleZF.merge(scscWTg.convert, left_on='Gene name', right_on='Human', how='inner')
-# maleZF.sort_values('cluster', inplace=True)
-# dictZF = {}
-# for i in set(maleZF['cluster']):
-#     a = maleZF[maleZF['cluster'] == i]
-#     print(a)
-#     print(a.columns)
-#     a.sort_values('p_val', inplace=True)
-#     dictZF[str(i)] = a['Final symbol'].tolist()[:10]
-#     dictZF[str(i)] = [m for m in dictZF[str(i)] if m in scscWTg.sc_matrix.var_names]
-# print(dictZF)
-# print(maleZF.columns)
-# sc.pl.dotplot(scscWTg.sc_matrix, dictZF, 'leiden', dendrogram=True, save='_ZFcluster')
-#
-# # femaleZF['final Symbol'] = self.__convertGenesNames(femaleZF['Gene name'], 'Human')
-# maleZF = [m for m in maleZF['Final symbol'] if m in scscWTg.sc_matrix.var_names]
-# sc.pl.heatmap(scscWTg.sc_matrix, maleZF, groupby='leiden', swap_axes=True, save='WTgerm', show_gene_labels=False)
-
-
 
 # ####################Male####################
 scscM = copy.deepcopy(scsc)
@@ -810,41 +675,20 @@ cells.extend(scscM.sc_matrix[scscM.sc_matrix.obs['Group'] == 'KOM'].obs_names.to
 scscM.sc_matrix = scscM.pick_specific_cells_by_name(cells)
 scscM.filtering_normalization_scaling()
 
-# scscM.sc_matrix = scscM.subsampling_by_group('KOM', 'WTM')
-# print(pd.crosstab(index=scscM.sc_matrix.obs['Group'], columns='count'))
-
 scscM.pca_and_umap(neighbors=20.0, pcs=20.0, res=0.4, dist=0.5, name='M', size=20)
-# # newOrder = ['9', '3', '8', '6', '5', '0', '7', '2', '1', '4',] order=newOrder,
 newOrder = ['10', '7', '3', '9', '6', '0', '4', '8', '2', '1', '5']
 scscM.cell_type_identification(name='M', order=newOrder, size=20,  markerGeneFile='markersMale')
 
 # scscM.marker_genes(cluster='leiden', name='M')
-""""""
+"""
 # differential expression
 # scscM.DEgenes = []
 scscM.sc_matrix.obs['leidenGroup'] = (scscM.sc_matrix.obs['leiden'].astype(str) + scscM.sc_matrix.obs['Group'].astype(str)).astype('category')  #().astype('category')
 for i in ['0', '1', '2', '5']: # no sub-sampling
 # for i in ['0', '1', '2', '4']:      # sub-sampling
     scscM.differential_expression_genes(i+'WTM', i+'KOM', cluster='leidenGroup', name='M_%s_WTvsKO' % i, thresholdpval=0.1, thresholdFC=1.5)
-# # scscM.differential_expression_genes('WTM', 'KOM', cluster='Group', name='M_WTvsKO', thresholdpval=0.1, thresholdFC=1.5)
-# # sc.pl.heatmap(scscM.sc_matrix, scscM.DEgenes, groupby='leidenGroup', swap_axes=True, save='Male')
-#
-#
-# orderViolin = ['0WTM', '0KOM', '2WTM', '2KOM', '4WTM', '4KOM', '1WTM', '1KOM', '3KOM', '5WTM', '5KOM', '6WTM', '6KOM',
-#                '7WTM', '7KOM', '8KOM', '9KOM']
-# genesViolin = [ 'hspa1a (2 of 2)','mknk2', 'atf4 (1 of 2)', 'hspa8 (3 of 3)','hsp90ab1',
-#                'rpl26','rps2','rpl7', 'eef1a1 (3 of 5)']
-genesViolin = ['hspa1a (2 of 2)','hspa1a (1 of 2)','hsp90ab1','hspa5','rpl26','atf4 (1 of 2)','rps2',
-               'hspa8 (3 of 3)','rplp1','rpl19 (2 of 2)',
-               'rplp2 (1 of 2)','rps3','eef1a1 (3 of 5)','fos (2 of 3)']
-# cmap = cmr.get_sub_cmap('Reds', 0.1, 0.9) #'BuPu'
-#
-#
-# sc.pl.matrixplot(scscM.sc_matrix, genesViolin, groupby='leidenGroup', standard_scale='var', cmap=cmap, swap_axes=True, return_fig=True, categories_order=orderViolin[0:8], save='Male')
 scscM.sc_matrix = scscM.pick_specific_cells('leiden', ['0', '1', '2', '5'])
-# scscM.sc_matrix = scscM.pick_specific_cells('leidenGroup', ['0WTM', '0KOM', '1WTM', '1KOM', '2WTM', '2KOM', '5WTM', '5KOM'])
 scscM.FCheatmap(genesViolin, name='male_FC_heatmap')
-# # sc.pl.stacked_violin(scscM.sc_matrix, genesViolin, groupby='leidenGroup', dendrogram=False, swap_axes=True, categories_order=orderViolin, save='Male')
 
 
 ####################Female#################
@@ -859,7 +703,6 @@ scscF.filtering_normalization_scaling()
 # print(pd.crosstab(index=scscF.sc_matrix.obs['Group'], columns='count'))
 
 scscF.pca_and_umap(neighbors=20.0, pcs=20.0, res=0.8, dist=0.5, name='F', size=20)
-# # newOrder = ['13', '15', '11', '14', '7', '9', '0', '8', '1', '5', '4', '10', '2', '3', '16', '12', '6'], order=newOrder
 newOrder = ['15', '13', '11', '16', '7', '14', '8', '9',  '0', '1', '4', '5', '10', '2', '3', '17', '12', '6']
 scscF.cell_type_identification(name='F', order=newOrder, size=20, markerGeneFile='markersFemale')
 print(pd.crosstab(index=scscF.sc_matrix.obs['Group'], columns='count'))
@@ -870,91 +713,9 @@ print(pd.crosstab(index=scscF.sc_matrix.obs['Group'], columns='count'))
 scscF.sc_matrix.obs['leidenGroup'] = (scscF.sc_matrix.obs['leiden'].astype(str) + scscF.sc_matrix.obs['Group'].astype(str)).astype('category')
 print(pd.crosstab(index=scscF.sc_matrix.obs['leidenGroup'], columns='count'))
 
-for i in ['0', '1', '2', '5']:      # no sub-sampling
 # for i in ['0', '1', '2']:             # sub-sampling
     scscF.differential_expression_genes(i+'WTF', i+'KOF', cluster='leidenGroup', name='F_%s_WTvsKO' % i, thresholdpval=0.1, thresholdFC=1.5)
 
-
-# # # scscF.differential_expression_genes('WTF', 'KOF', cluster='Group', name='F_WTvsKO', thresholdpval=0.1, thresholdFC=1.5)
-# # # sc.pl.heatmap(scscF.sc_matrix, scscF.DEgenes, groupby='leidenGroup', swap_axes=True, save='Female')
-#
-#
-# orderViolin = ['4WTF', '4KOF', '2WTF', '2KOF', '0WTF', '0KOF', '1WTF', '1KOF', '16WTF', '15KOF', '14WTF', '13WTF', '13KOF',
-#                '12WTF', '12KOF', '11KOF', '10WTF', '10KOF', '9WTF', '9KOF', '8WTF', '8KOF', '7WTF', '6WTF', '5WTF', '5KOF', '3WTF', '3KOF']
-#
-# # sc.pl.violin(scscF.sc_matrix, genesViolin, groupby='leidenGroup',save='Female', rotation=90, order=orderViolin)
-#
 # scscF.sc_matrix = scscF.pick_specific_cells('leiden', ['0', '1', '2', '5'])
 # # scscF.sc_matrix = scscF.pick_specific_cells('leidenGroup', ['5WTF', '5KOF', '2WTF', '2KOF', '0WTF', '0KOF', '1WTF', '1KOF'])
-# scscF.FCheatmap(genesViolin, name='female_FC_heatmap')
-#
-# # sc.pl.stacked_violin(scscF.sc_matrix, genesViolin, groupby='leidenGroup', dendrogram=False, swap_axes=True, categories_order=orderViolin[0:8], save='Female')
-#
-# def convertGenesNames(geneList, source='NCBI', target='Final symbol'):
-#     convert = pd.read_csv('/sci/labs/itamarh/tehila_atlan/icore-home/data/genes_names.csv')
-#     if type(geneList) is not list:
-#         geneList = geneList.to_list()
-#     return(convert.set_index(source).loc[geneList].reset_index()[target].to_list())
-"""
 
-"""
-## add the genes without conversion in Param's Table
-fff = pd.read_table('/sci/labs/itamarh/tehila_atlan/icore-home/data/scRNAseq/Eitan/raw_data6.22/named_RSEM_kf_matrix_expected_counts_KilliKO_F1.csv', index_col=0)
-fff.columns = fff.columns.str.replace('gene-','')
-convert = pd.read_csv('/sci/labs/itamarh/tehila_atlan/icore-home/data/genes_names.csv')
-# set(convert['NCBI']) ^ set(fff.columns)
-vv = pd.DataFrame([list(set(convert['NCBI']) ^ set(fff.columns))]*5, index=convert.columns).T
-convert.append(vv).to_csv('/sci/labs/itamarh/tehila_atlan/icore-home/data/genes_names2.csv', index=False)
-"""
-
-
-"""
-Session information updated at 2022-12-01 18:10
------
-anndata     0.7.6
-scanpy      1.9.1
------
-PIL                 9.1.0
-beta_ufunc          NA
-binom_ufunc         NA
-cmasher             1.6.3
-colorspacious       1.1.2
-cycler              0.10.0
-cython_runtime      NA
-dateutil            2.8.2
-h5py                3.6.0
-hypergeom_ufunc     NA
-igraph              0.9.7
-joblib              1.1.0
-kiwisolver          1.3.2
-leidenalg           0.8.8
-llvmlite            0.38.0
-louvain             0.7.0
-matplotlib          3.5.2
-matplotlib_venn     0.11.6
-mpl_toolkits        NA
-natsort             7.1.1
-nbinom_ufunc        NA
-numba               0.55.1
-numexpr             2.7.3
-numpy               1.21.6
-packaging           21.3
-pandas              1.4.2
-pkg_resources       NA
-pyexpat             NA
-pyparsing           3.0.8
-pytz                2022.1
-scipy               1.8.0
-session_info        1.0.0
-sitecustomize       NA
-six                 1.16.0
-sklearn             1.0.2
-skmisc              0.1.4
-texttable           1.6.4
-threadpoolctl       3.0.0
------
-Python 3.9.7 (default, Oct  7 2021, 15:14:06) [GCC 8.3.0]
-Linux-5.10.104-aufs-3-x86_64-with-glibc2.28
------
-Session information updated at 2022-12-01 18:10
-"""
